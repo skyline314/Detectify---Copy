@@ -1,0 +1,20 @@
+# File Rahasia 
+.env
+
+# Virtual Environment & Dependencies
+venv/
+__pycache__/
+*.pyc
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Database Lokal
+*.db
+*.sqlite3
+migrations/
+
+# File Sampah Sistem
+.DS_Store
+Thumbs.db

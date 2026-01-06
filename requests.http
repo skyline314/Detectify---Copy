@@ -1,0 +1,116 @@
+@baseUrl = http://127.0.0.1:5000
+@contentType = application/json
+
+# ====================================================================
+# SKENARIO 1: REGISTRASI & VERIFIKASI EMAIL
+# ====================================================================
+
+### 1. Registrasi Pengguna Baru
+# Harapan: 201 Created.
+# LIHAT TERMINAL FLASK: Salin token verifikasi dari output "MOCK EMAIL".
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+    "email": "user_baru_01@example.com",
+    "password": "password123"
+}
+
+### 2. Coba Login SEBELUM Verifikasi
+# Harapan: 403 Forbidden ("Akun belum diverifikasi")
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "user_baru_01@example.com",
+    "password": "password123"
+}
+
+### 3. Verifikasi Email
+# Ganti TOKEN_VERIFIKASI dengan token panjang yang muncul di terminal Flask (dari langkah 1).
+# Ini mensimulasikan user mengklik link verifikasi di email mereka.
+@verifyToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc2NzY3MDI3OCwianRpIjoiYTNkY2M4MDYtMmMwZC00YjE1LTkwMDctMDA1NzRhMWMwMTBjIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6Ijk1ZGEyNDAwLWU3NmItNGJkMC1hOGU5LWZlYjM2NjIxYjRlNiIsIm5iZiI6MTc2NzY3MDI3OCwiY3NyZiI6IjEyODQ3ZGM1LTdiN2ItNGVkOC1hZDY2LWIwNjg4NmE0ZGZjOSIsImV4cCI6MTc2NzY3MTE3OH0.HFyptoOcq_YB6xyxL2CjlKucKpNvoxD6I-AUBCqK808
+
+GET {{baseUrl}}/auth/verify-email?token={{verifyToken}}
+
+### 4. Login SETELAH Verifikasi (Sukses)
+# Harapan: 200 OK & Access Token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "user_baru_01@example.com",
+    "password": "password123"
+}
+
+### Simpan Token Login
+# Salin token dari response login di atas (tanpa tanda kutip) dan tempel di bawah ini
+@authToken = <PASTE_TOKEN_LOGIN_DISINI>
+
+
+# ====================================================================
+# SKENARIO 2: LUPA PASSWORD (VIA EMAIL)
+# ====================================================================
+
+### 5. Request Lupa Password
+# Harapan: 200 OK.
+# LIHAT TERMINAL FLASK: Salin token reset dari output "MOCK EMAIL".
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: {{contentType}}
+
+{
+    "email": "user_baru_01@example.com"
+}
+
+### 6. Reset Password Baru
+# Ganti TOKEN_RESET dengan token dari terminal (dari langkah 5).
+@resetToken = TOKEN_RESET_DARI_TERMINAL
+
+POST {{baseUrl}}/auth/reset-password
+Content-Type: {{contentType}}
+
+{
+    "token": "{{resetToken}}",
+    "new_password": "password_baru_456"
+}
+
+### 7. Login dengan Password BARU
+# Harapan: 200 OK
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "user_baru_01@example.com",
+    "password": "password_baru_456"
+}
+
+
+# ====================================================================
+# SKENARIO 3: FITUR UTAMA (AUDIO)
+# ====================================================================
+
+### 8. Upload Audio (Memicu Worker)
+# Ganti path file audio dengan lokasi file asli di komputer Anda.
+# Contoh Windows: < C:\Users\Nama\Music\test.mp3
+POST {{baseUrl}}/api/analysis/audio
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=MyBoundary
+
+--MyBoundary
+Content-Disposition: form-data; name="file"; filename="test_audio.mp3"
+Content-Type: audio/mpeg
+
+< ./celery_worker/assets/test.mp3
+--MyBoundary--
+
+### 9. Cek Status Analisis (Polling)
+# Ganti ID dengan analysis_id dari response upload (langkah 8)
+@analysisId = <PASTE_ANALYSIS_ID_DISINI>
+
+GET {{baseUrl}}/api/analysis/{{analysisId}}
+Authorization: Bearer {{authToken}}
+
+### 10. Lihat Riwayat
+GET {{baseUrl}}/api/history
+Authorization: Bearer {{authToken}}
